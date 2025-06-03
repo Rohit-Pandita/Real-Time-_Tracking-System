@@ -1,31 +1,40 @@
 const express = require("express");
-const app = express();
 const http = require("http");
 const path = require("path");
-const { disconnect } = require("process");
-
 const socketio = require("socket.io");
+
+const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
-app.use(express.static("public"));
 
-app.set("view engine","ejs");
-app.set(express.static(path.join(__dirname,"public")));
+// Set the view engine to EJS
+app.set("view engine", "ejs");
 
-io.on("connection",function (socket){
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, "public")));
 
-    socket.on("send-location", function (data){
-        io.emit("receive-location", {id : socket.id, ...data});
+// Handle client connections via Socket.io
+io.on("connection", (socket) => {
+    console.log("User connected:", socket.id);
+
+    // Listen for location sharing event
+    socket.on("send-location", (data) => {
+        io.emit("receive-location", { id: socket.id, ...data });
     });
-    socket.on("disconnect",function() {
-          io.emit("user-disconnected",socket.id );
-    })
-    console.log("connected");
-})
 
-app.get("/", function (req,res){
+    // Handle user disconnect
+    socket.on("disconnect", () => {
+        io.emit("user-disconnected", socket.id);
+        console.log("User disconnected:", socket.id);
+    });
+});
+
+// Render the main page
+app.get("/", (req, res) => {
     res.render("index");
 });
 
-
-server.listen(3000);
+// Start the server
+server.listen(3000, () => {
+    console.log("Server is running on http://localhost:3000");
+});
